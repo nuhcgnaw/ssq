@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>双色球历史开奖查询</title>
+<style>
+  :root{
+    --red:#e23b3b; --red-d:#c62a2a; --blue:#2f7de1; --blue-d:#1f63bd;
+    --bg:#f6f7fb; --card:#ffffff; --ink:#1f2430; --muted:#6b7280;
+    --line:#e6e8ef; --accent:#2f7de1; --shadow:0 2px 10px rgba(20,30,60,.06);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    background:var(--bg);color:var(--ink);line-height:1.5}
+  header{background:linear-gradient(120deg,#e23b3b,#ff7a45);color:#fff;padding:22px 20px 18px}
+  header h1{margin:0;font-size:22px;letter-spacing:1px}
+  header .sub{margin-top:6px;font-size:13px;opacity:.92}
+  .wrap{max-width:1080px;margin:0 auto;padding:16px}
+  .tabs{display:flex;gap:8px;margin:14px 0}
+  .tab{padding:9px 18px;border:1px solid var(--line);background:#fff;border-radius:999px;cursor:pointer;font-size:14px;color:var(--muted)}
+  .tab.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);padding:18px;margin-bottom:16px}
+  .card h2{margin:0 0 12px;font-size:16px}
+  .muted{color:var(--muted);font-size:13px}
+  .row{display:flex;flex-wrap:wrap;gap:14px;align-items:center}
+
+  /* 球 */
+  .balls{display:inline-flex;gap:7px;align-items:center;flex-wrap:wrap}
+  .ball{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+    color:#fff;font-weight:700;font-size:15px;font-variant-numeric:tabular-nums}
+  .ball.red{background:radial-gradient(circle at 30% 30%,#ff6b6b,var(--red-d))}
+  .ball.blue{background:radial-gradient(circle at 30% 30%,#5a9bf0,var(--blue-d))}
+  .ball.sm{width:26px;height:26px;font-size:12px}
+
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{padding:9px 10px;border-bottom:1px solid var(--line);text-align:center}
+  th{color:var(--muted);font-weight:600;background:#fafbfe}
+  tbody tr:hover{background:#fafbff}
+  td.date{color:var(--muted)}
+  .code{font-weight:700;font-variant-numeric:tabular-nums}
+
+  input,select{font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:9px;background:#fff;color:var(--ink)}
+  button{padding:8px 16px;border:none;border-radius:9px;background:var(--accent);color:#fff;cursor:pointer;font-size:14px}
+  button.ghost{background:#fff;color:var(--accent);border:1px solid var(--accent)}
+  button:hover{filter:brightness(.97)}
+
+  .latest{display:flex;flex-direction:column;gap:10px;align-items:flex-start}
+  .latest .meta{font-size:13px;color:var(--muted)}
+  .notice{padding:10px 14px;border-radius:10px;font-size:13px;margin-top:10px;display:none}
+  .notice.ok{background:#eafaf0;color:#1c7a43;border:1px solid #bfe9cd}
+  .notice.warn{background:#fff5e6;color:#9a6400;border:1px solid #ffe0ad}
+  .notice.err{background:#fdecec;color:#b3261e;border:1px solid #f7c5c2}
+
+  .stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:14px}
+  .stat{background:#fafbff;border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+  .stat .k{font-size:12px;color:var(--muted)}
+  .stat .v{font-size:20px;font-weight:700;margin-top:4px}
+  .stat .v small{font-size:12px;color:var(--muted);font-weight:500}
+
+  .freq{margin:6px 0 18px}
+  .freq h3{font-size:14px;margin:14px 0 8px}
+  .bars{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:8px}
+  .bar{display:flex;flex-direction:column;gap:4px}
+  .bar .top{display:flex;justify-content:space-between;font-size:12px}
+  .bar .num{font-weight:700}
+  .bar .track{height:9px;background:#eef0f6;border-radius:6px;overflow:hidden}
+  .bar .fill{height:100%;border-radius:6px}
+  .chips{display:flex;flex-wrap:wrap;gap:6px}
+  .chip{padding:4px 10px;border-radius:999px;font-size:12px;font-weight:700;color:#fff}
+  footer{color:var(--muted);font-size:12px;text-align:center;padding:18px}
+  a{color:var(--accent)}
+  .pill{display:inline-block;padding:2px 9px;border-radius:999px;font-size:11px;background:#eef2ff;color:#3a55c9;margin-left:6px}
+</style>
+</head>
+<body>
+<header>
+  <h1>🎯 双色球历史开奖查询</h1>
+  <div class="sub" id="hdrSub">加载中…</div>
+</header>
+
+<div class="wrap">
+  <div class="tabs">
+    <div class="tab active" data-tab="latest">最新开奖</div>
+    <div class="tab" data-tab="query">查询</div>
+    <div class="tab" data-tab="stat">统计分析</div>
+    <div class="tab" data-tab="miss">未出/遗漏</div>
+  </div>
+
+  <!-- 最新 -->
+  <section id="panel-latest">
+    <div class="card">
+      <h2>最新一期开奖 <span class="pill" id="livePill" style="display:none">实时</span></h2>
+      <div class="latest" id="latestBox"><div class="muted">加载中…</div></div>
+      <div class="row" style="margin-top:14px">
+        <button id="btnUpdate">🔄 检查更新（联网获取最新）</button>
+        <span class="muted" id="updHint">需通过本地代理 /api/latest 联网；纯静态托管时请运行更新脚本</span>
+      </div>
+      <div class="notice" id="notice"></div>
+    </div>
+  </section>
+
+  <!-- 查询 -->
+  <section id="panel-query" style="display:none">
+    <div class="card">
+      <h2>开奖查询</h2>
+      <div class="row" style="margin-bottom:12px">
+        <select id="qMode">
+          <option value="code">按期号精确</option>
+          <option value="codeRange">按期号区间</option>
+          <option value="dateRange">按日期区间</option>
+          <option value="contain">按包含号码</option>
+        </select>
+        <span id="qFields"></span>
+        <button id="btnQuery">查询</button>
+        <button id="btnQExport" class="ghost">⬇ 导出结果 CSV</button>
+      </div>
+      <div class="muted" id="qCount"></div>
+      <div style="overflow:auto;max-height:560px;margin-top:8px">
+        <table id="qTable">
+          <thead><tr><th>期号</th><th>开奖日期</th><th>红球</th><th>蓝球</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- 统计 -->
+  <section id="panel-stat" style="display:none">
+    <div class="card">
+      <h2>出现频率统计 <span class="muted" id="statRange"></span></h2>
+      <div class="stat-grid" id="statCards"></div>
+      <div class="freq">
+        <h3>红球出现次数（1–33，共 <span id="redTotal"></span> 次）</h3>
+        <div class="bars" id="redBars"></div>
+        <h3>蓝球出现次数（1–16，共 <span id="blueTotal"></span> 次）</h3>
+        <div class="bars" id="blueBars"></div>
+      </div>
+      <div class="freq">
+        <h3>最热 / 最冷</h3>
+        <div class="row" style="gap:24px">
+          <div><div class="muted" style="margin-bottom:6px">红球 最热 TOP5</div><div class="chips" id="hotRed"></div></div>
+          <div><div class="muted" style="margin-bottom:6px">红球 最冷 BOTTOM5</div><div class="chips" id="coldRed"></div></div>
+        </div>
+        <div class="row" style="gap:24px;margin-top:12px">
+          <div><div class="muted" style="margin-bottom:6px">蓝球 最热 TOP3</div><div class="chips" id="hotBlue"></div></div>
+          <div><div class="muted" style="margin-bottom:6px">蓝球 最冷 BOTTOM3</div><div class="chips" id="coldBlue"></div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 未出/遗漏 -->
+  <section id="panel-miss" style="display:none">
+    <div class="card">
+      <h2>未出现 / 遗漏分析 <span class="muted" id="missRange"></span></h2>
+      <div class="muted" id="missNote" style="margin-bottom:8px"></div>
+      <div class="row" style="margin-bottom:10px">
+        <select id="missType">
+          <option value="red">红球 01–33</option>
+          <option value="blue">蓝球 01–16</option>
+          <option value="all">全部（红+蓝）</option>
+        </select>
+        <label class="muted"><input type="checkbox" id="missOnly" /> 仅看当前遗漏＞0（近期未出）</label>
+        <button id="btnMissExport" class="ghost">⬇ 导出遗漏分析 CSV</button>
+      </div>
+      <div style="overflow:auto;max-height:600px">
+        <table id="missTable">
+          <thead><tr><th>号码</th><th>类型</th><th>历史出现次数</th><th>当前遗漏(期)</th><th>最大遗漏(期)</th><th>上次出现</th><th>状态</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    数据来源：<span id="srcName">—</span> · 共 <span id="totalN">—</span> 期 ·
+    本页为查询/统计工具，仅供娱乐与研究，不构成任何购彩建议。
+  </footer>
+</div>
+
+<script>
+let DATA = [];          // 当前内存中的开奖列表（升序）
+let META = null;
+let liveMerged = false; // 是否已合并过实时数据
+let lastQuery = [];     // 最近一次查询结果（用于导出）
+let MISS = [];          // 遗漏分析缓存
+
+const $ = (s)=>document.querySelector(s);
+const fmt2 = (n)=>String(n).padStart(2,'0');
+const redBalls = (arr,sm)=>`<span class="balls">${arr.map(n=>`<span class="ball red${sm?' sm':''}">${fmt2(n)}</span>`).join('')}</span>`;
+const blueBall = (n,sm)=>`<span class="ball blue${sm?' sm':''}">${fmt2(n)}</span>`;
+
+function showNotice(msg,type){
+  const el=$('#notice'); el.textContent=msg; el.className='notice '+type; el.style.display='block';
+}
+
+// ---- 加载数据 ----
+async function load(){
+  try{
+    const res = await fetch('data/ssq.json',{cache:'no-store'});
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const json = await res.json();
+    DATA = json.list; META = json.meta;
+    $('#hdrSub').textContent = `共 ${DATA.length} 期 · 第 ${DATA[0].code} 期(${DATA[0].date}) ~ 第 ${DATA[DATA.length-1].code} 期(${DATA[DATA.length-1].date}) · 数据更新于 ${META.fetchedAt.slice(0,10)}`;
+    $('#srcName').textContent = META.sourceName;
+    $('#totalN').textContent = DATA.length;
+    renderLatest();
+    renderStat();
+    computeMiss();
+    renderMiss();
+  }catch(e){
+    $('#hdrSub').textContent='数据加载失败';
+    showNotice('无法加载 data/ssq.json。请通过本地服务器访问（如运行 `node server.mjs` 后打开 http://localhost:8080），不要直接双击用 file:// 打开。', 'err');
+  }
+}
+
+// ---- 最新开奖 ----
+function renderLatest(){
+  const x = DATA[DATA.length-1];
+  $('#latestBox').innerHTML = `
+    <div class="code" style="font-size:18px">第 ${x.code} 期 <span class="muted">(${x.date} 周${x.weekday})</span></div>
+    <div class="balls">${redBalls(x.red)}${blueBall(x.blue)}</div>
+    <div class="meta">开奖时间：${x.openTime||'—'}</div>`;
+}
+
+// ---- 实时更新（经本地代理 /api/latest）----
+async function checkUpdate(){
+  const btn=$('#btnUpdate'); btn.disabled=true; btn.textContent='查询中…';
+  try{
+    const res = await fetch('/api/latest',{cache:'no-store'});
+    if(!res.ok) throw new Error('no-proxy');
+    const j = await res.json();
+    const last = j?.data?.last;
+    if(!last) throw new Error('empty');
+    const rec = normRecord(last);
+    const cur = DATA[DATA.length-1];
+    if(rec.code === cur.code){
+      $('#livePill').style.display='inline-block';
+      showNotice(`已是最新：第 ${rec.code} 期（${rec.date}）。`, 'ok');
+    }else if(rec.code > cur.code){
+      DATA.push(rec); DATA.sort((a,b)=>a.code.localeCompare(b.code));
+      liveMerged = true; $('#livePill').style.display='inline-block';
+      META.last=rec.code; META.lastDate=rec.date;
+      $('#hdrSub').textContent = `共 ${DATA.length} 期 · 末期为第 ${rec.code} 期(${rec.date})（已实时合并）`;
+      renderLatest(); renderStat();
+      showNotice(`已合并最新一期：第 ${rec.code} 期（${rec.date}）。`, 'ok');
+    }else{
+      showNotice('接口返回的不是更新数据。', 'warn');
+    }
+  }catch(e){
+    showNotice('当前环境未提供实时代理（/api/latest）。请本地用 `node server.mjs` 启动以实时更新，或运行 `node scripts/update.mjs` 刷新数据文件后重新发布。', 'warn');
+  }finally{
+    btn.disabled=false; btn.textContent='🔄 检查更新（联网获取最新）';
+  }
+}
+function normRecord(r){
+  const WEEK=['日','一','二','三','四','五','六'];
+  const red=[r.one,r.two,r.three,r.four,r.five,r.six].map(n=>+n).sort((a,b)=>a-b);
+  const d=new Date(r.day+'T00:00:00');
+  return {code:r.code,date:r.day,weekday:WEEK[d.getDay()],red,blue:+r.seven,openTime:r.open_time||''};
+}
+
+// ---- 查询 ----
+function buildQueryFields(){
+  const mode=$('#qMode').value; const box=$('#qFields'); box.innerHTML='';
+  if(mode==='code') box.innerHTML=`<input id="qCode" placeholder="如 2026101" style="width:140px">`;
+  else if(mode==='codeRange') box.innerHTML=`<input id="qFrom" placeholder="起始期 2026001" style="width:130px"><input id="qTo" placeholder="结束期 2026101" style="width:130px">`;
+  else if(mode==='dateRange') box.innerHTML=`<input id="qDfrom" type="date"><input id="qDto" type="date">`;
+  else if(mode==='contain') box.innerHTML=`<input id="qNum" placeholder="包含号码, 如 07 或 07,12" style="width:160px"><select id="qColor"><option value="any">红/蓝</option><option value="red">仅红球</option><option value="blue">仅蓝球</option></select>`;
+}
+function doQuery(){
+  const mode=$('#qMode').value; let res=[];
+  if(mode==='code'){ const c=$('#qCode').value.trim(); res=DATA.filter(x=>x.code===c); }
+  else if(mode==='codeRange'){ const a=$('#qFrom').value.trim(), b=$('#qTo').value.trim();
+    res=DATA.filter(x=>x.code>=a&&x.code<=b); }
+  else if(mode==='dateRange'){ const a=$('#qDfrom').value, b=$('#qDto').value;
+    res=DATA.filter(x=>x.date>=a&&x.date<=b); }
+  else if(mode==='contain'){ const nums=$('#qNum').value.split(/[,\s]+/).map(s=>parseInt(s,10)).filter(n=>!isNaN(n));
+    const col=$('#qColor').value;
+    res=DATA.filter(x=>nums.every(n=>{
+      if(col==='red') return x.red.includes(n);
+      if(col==='blue') return x.blue===n;
+      return x.red.includes(n)||x.blue===n;
+    })); }
+  res=res.slice().sort((a,b)=>b.code.localeCompare(a.code)); // 新→旧
+  lastQuery = res;
+  $('#qCount').textContent = `匹配 ${res.length} 期`;
+  const tb=$('#qTable tbody'); tb.innerHTML='';
+  const frag=document.createDocumentFragment();
+  for(const x of res){
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td class="code">${x.code}</td><td class="date">${x.date} 周${x.weekday}</td><td>${redBalls(x.red,true)}</td><td>${blueBall(x.blue,true)}</td>`;
+    frag.appendChild(tr);
+  }
+  tb.appendChild(frag);
+}
+
+// ---- 统计 ----
+function renderStat(){
+  const N=DATA.length;
+  const redC=new Array(34).fill(0), blueC=new Array(17).fill(0);
+  let sumRed=0, oddCnt=0, consecCnt=0;
+  for(const x of DATA){
+    for(const r of x.red){ redC[r]++; sumRed+=r; }
+    blueC[x.blue]++;
+    oddCnt += x.red.filter(r=>r%2).length;
+    let consec=0; for(let i=1;i<x.red.length;i++) if(x.red[i]-x.red[i-1]===1) consec++;
+    consecCnt+=consec;
+  }
+  const redTotal=redC.reduce((a,b)=>a+b,0), blueTotal=blueC.reduce((a,b)=>a+b,0);
+  $('#redTotal').textContent=redTotal; $('#blueTotal').textContent=blueTotal;
+  $('#statRange').textContent=`（${DATA[0].date} ~ ${DATA[DATA.length-1].date}）`;
+  const avg=(sumRed/N).toFixed(1), avgOdd=(oddCnt/N).toFixed(1), avgConsec=(consecCnt/N).toFixed(2);
+  $('#statCards').innerHTML=`
+    <div class="stat"><div class="k">总期数</div><div class="v">${N}</div></div>
+    <div class="stat"><div class="k">红球平均和值</div><div class="v">${avg}</div></div>
+    <div class="stat"><div class="k">平均每期奇数红球</div><div class="v">${avgOdd}<small> /6</small></div></div>
+    <div class="stat"><div class="k">平均每期连号数</div><div class="v">${avgConsec}</div></div>`;
+  drawBars('#redBars', redC, 1, 33, 'red');
+  drawBars('#blueBars', blueC, 1, 16, 'blue');
+  // 最热/最冷
+  const redArr=[...Array(34).keys()].slice(1).map(n=>({n,c:redC[n]})).sort((a,b)=>b.c-a.c);
+  const blueArr=[...Array(17).keys()].slice(1).map(n=>({n,c:blueC[n]})).sort((a,b)=>b.c-a.c);
+  const chip=(o,kind)=>`<span class="chip" style="background:${kind==='red'?'var(--red)':'var(--blue)'}">${fmt2(o.n)} · ${o.c}</span>`;
+  $('#hotRed').innerHTML=redArr.slice(0,5).map(o=>chip(o,'red')).join('');
+  $('#coldRed').innerHTML=redArr.slice(-5).reverse().map(o=>chip(o,'red')).join('');
+  $('#hotBlue').innerHTML=blueArr.slice(0,3).map(o=>chip(o,'blue')).join('');
+  $('#coldBlue').innerHTML=blueArr.slice(-3).reverse().map(o=>chip(o,'blue')).join('');
+}
+function drawBars(sel, count, from, to, kind){
+  const max=Math.max(...count.slice(from)); const min=Math.min(...count.slice(from));
+  const box=$(sel); box.innerHTML='';
+  const frag=document.createDocumentFragment();
+  for(let n=from;n<=to;n++){
+    const c=count[n]; const ratio=(c-min)/((max-min)||1);
+    const pct=Math.round(c/max*100);
+    const color = kind==='red'
+      ? `rgb(${Math.round(226+ (29-226)*ratio)},${Math.round(59+ (42-59)*ratio)},${Math.round(59+ (42-59)*ratio)})`
+      : `rgb(${Math.round(47+ (31-47)*ratio)},${Math.round(125+ (99-125)*ratio)},${Math.round(225+ (189-225)*ratio)})`;
+    const bar=document.createElement('div'); bar.className='bar';
+    bar.innerHTML=`<div class="top"><span class="num">${fmt2(n)}</span><span>${c}</span></div>
+      <div class="track"><div class="fill" style="width:${pct}%;background:${color}"></div></div>`;
+    frag.appendChild(bar);
+  }
+  box.appendChild(frag);
+}
+
+// ---- 未出现 / 遗漏分析 ----
+function computeMiss(){
+  const N=DATA.length;
+  const build=(pool,type)=>{
+    const rows=[];
+    for(const n of pool){
+      let lastSeen=-1, maxO=0, count=0;
+      for(let i=0;i<N;i++){
+        const appeared = type==='red' ? DATA[i].red.includes(n) : (DATA[i].blue===n);
+        if(appeared){ count++; if(lastSeen>=0) maxO=Math.max(maxO, i-lastSeen-1); lastSeen=i; }
+        else { const run = lastSeen===-1 ? i+1 : i-lastSeen; if(run>maxO) maxO=run; }
+      }
+      const cur = lastSeen===-1 ? N : (N-1-lastSeen);
+      rows.push({ n, type, count, cur, maxO,
+        lastCode: lastSeen>=0?DATA[lastSeen].code:'—',
+        lastDate: lastSeen>=0?DATA[lastSeen].date:'—',
+        never: count===0 });
+    }
+    return rows;
+  };
+  MISS = build([...Array(34).keys()].slice(1),'red')
+          .concat(build([...Array(17).keys()].slice(1),'blue'));
+}
+function renderMiss(){
+  const type=$('#missType').value, only=$('#missOnly').checked;
+  let rows=MISS.filter(r=> type==='all' ? true : r.type===type);
+  if(only) rows=rows.filter(r=>r.cur>0);
+  rows=rows.slice().sort((a,b)=>b.cur-a.cur);
+  const never=MISS.filter(r=>r.never);
+  $('#missRange').textContent=`（${DATA[0].date} ~ ${DATA[DATA.length-1].date}，共 ${DATA.length} 期）`;
+  $('#missNote').innerHTML = never.length
+    ? `⚠ <b style="color:#b3261e">历史从未出现过的号码：${never.map(r=>fmt2(r.n)+(r.type==='blue'?'（蓝）':'（红）')).join('、')}</b>`
+    : '全部号码在历史上均出现过；下表按「当前遗漏」从大到小排序——即距上次开出已隔多少期，越靠上代表越久未出。';
+  const tb=$('#missTable tbody'); tb.innerHTML='';
+  const frag=document.createDocumentFragment();
+  for(const r of rows){
+    const tr=document.createElement('tr');
+    if(r.never) tr.style.background='#fdecec';
+    const status = r.never ? '<span style="color:#b3261e;font-weight:700">从未出现</span>'
+      : (r.cur===0 ? '<span style="color:#1c7a43;font-weight:700">本期开出</span>' : `未出 ${r.cur} 期`);
+    tr.innerHTML=`<td class="code">${fmt2(r.n)}</td>
+      <td>${r.type==='red'?'红球':'蓝球'}</td>
+      <td>${r.count}</td>
+      <td><b>${r.cur}</b></td>
+      <td>${r.maxO}</td>
+      <td class="date">${r.lastCode==='—'?'—':r.lastCode+'（'+r.lastDate+'）'}</td>
+      <td>${status}</td>`;
+    frag.appendChild(tr);
+  }
+  tb.appendChild(frag);
+}
+
+// ---- 导出 CSV（带 BOM，Excel 中文不乱码）----
+function downloadCSV(filename, rows, headers){
+  const esc=(v)=>'"'+String(v??'').replace(/"/g,'""')+'"';
+  const lines=[headers.map(esc).join(',')];
+  for(const r of rows) lines.push(r.map(esc).join(','));
+  const blob=new Blob(['\uFEFF'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=filename; a.click();
+  URL.revokeObjectURL(a.href);
+}
+function exportMiss(){
+  const type=$('#missType').value, only=$('#missOnly').checked;
+  let rows=MISS.filter(r=> type==='all'?true:r.type===type);
+  if(only) rows=rows.filter(r=>r.cur>0);
+  rows=rows.slice().sort((a,b)=>b.cur-a.cur);
+  const data=rows.map(r=>[fmt2(r.n), r.type==='red'?'红':'蓝', r.count, r.cur, r.maxO, r.lastCode, r.lastDate, r.never?'从未出现':'']);
+  downloadCSV(`双色球遗漏分析_${type}_${new Date().toISOString().slice(0,10)}.csv`, data,
+    ['号码','类型','历史出现次数','当前遗漏(期)','最大遗漏(期)','上次出现期号','上次出现日期','备注']);
+}
+function exportQuery(){
+  if(!lastQuery.length){ alert('请先执行一次查询'); return; }
+  const data=lastQuery.map(x=>[x.code, x.date, x.weekday, x.red.map(fmt2).join(' '), fmt2(x.blue)]);
+  downloadCSV(`双色球查询结果_${new Date().toISOString().slice(0,10)}.csv`, data,
+    ['期号','开奖日期','星期','红球','蓝球']);
+}
+
+// ---- 事件 ----
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+  t.classList.add('active');
+  ['latest','query','stat','miss'].forEach(p=>$('#panel-'+p).style.display = (p===t.dataset.tab)?'block':'none');
+});
+$('#btnUpdate').onclick=checkUpdate;
+$('#qMode').onchange=buildQueryFields;
+$('#btnQuery').onclick=doQuery;
+$('#btnQExport').onclick=exportQuery;
+$('#missType').onchange=renderMiss;
+$('#missOnly').onchange=renderMiss;
+$('#btnMissExport').onclick=exportMiss;
+buildQueryFields();
+load();
+</script>
+</body>
+</html>
